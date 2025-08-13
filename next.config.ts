@@ -23,8 +23,23 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       config.optimization.splitChunks = {
         ...config.optimization.splitChunks,
-        chunks: 'all',
-        maxSize: 240000, // 240kb
+        cacheGroups: {
+          ...config.optimization.splitChunks.cacheGroups,
+          // Create a separate chunk for GSAP
+          gsap: {
+            test: /[\\/]node_modules[\\/]gsap[\\/]/,
+            name: 'vendor-gsap',
+            chunks: 'all',
+            enforce: true,
+          },
+          // Create a separate chunk for React and ReactDOM
+          react: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: 'vendor-react',
+            chunks: 'all',
+            enforce: true,
+          },
+        },
       };
     }
     return config;
