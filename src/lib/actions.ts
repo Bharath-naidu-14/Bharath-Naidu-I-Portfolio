@@ -57,7 +57,7 @@ export async function submitContactForm(
     // Send email using Resend
     await resend.emails.send({
       from: 'Portfolio Contact <onboarding@resend.dev>', // IMPORTANT: This must be a domain you've verified with Resend for production.
-      to: 'your-email@example.com', //
+      to: 'bharathnaidu1402@gmail.com', //
       subject: `New Message from ${name} via Portfolio`,
       reply_to: email,
       html: `
