@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { Resend } from 'resend';
 
-// Initialize Resend with your API key
+// Initialize Resend only if the API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const contactSchema = z.object({
@@ -30,6 +30,7 @@ export type FormState = {
 export async function submitContactForm(
   data: z.infer<typeof contactSchema>
 ): Promise<FormState> {
+  // Check if Resend is configured
   if (!resend) {
     console.error('Resend is not configured. Please check your RESEND_API_KEY environment variable.');
     return {
@@ -40,6 +41,7 @@ export async function submitContactForm(
   
   const validatedFields = contactSchema.safeParse(data);
 
+  // Return errors if validation fails
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
@@ -54,8 +56,8 @@ export async function submitContactForm(
   try {
     // Send email using Resend
     await resend.emails.send({
-      from: 'Portfolio Contact <onboarding@resend.dev>', // IMPORTANT: This must be a domain you've verified with Resend.
-      to: 'your-email@example.com', // IMPORTANT: Replace with your actual email address.
+      from: 'Portfolio Contact <onboarding@resend.dev>', // IMPORTANT: This must be a domain you've verified with Resend for production.
+      to: 'your-email@example.com', //
       subject: `New Message from ${name} via Portfolio`,
       reply_to: email,
       html: `
@@ -76,7 +78,7 @@ export async function submitContactForm(
   } catch (e) {
     console.error('Email sending error:', e);
     return {
-      message: "An unexpected error occurred while sending the email. Please try again.",
+      message: "An unexpected error occurred while sending the email. Please try again later.",
       success: false,
     };
   }
