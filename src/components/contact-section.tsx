@@ -4,7 +4,8 @@ import React, { useEffect, useRef } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { submitContactForm } from "@/lib/actions";
+import { validateContactForm } from "@/lib/actions";
+import emailjs from '@emailjs/browser';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,7 +42,7 @@ export function ContactSection() {
     },
   });
 
-  const { isSubmitting } = form.formState;
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Refs for GSAP animation targets
   const sectionRef = useRef<HTMLElement>(null);
@@ -234,21 +235,66 @@ export function ContactSection() {
     };
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const result = await submitContactForm(values);
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      // First validate the form data
+      const result = validateContactForm(data);
+      
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+        
+        if (result.errors) {
+          Object.entries(result.errors).forEach(([field, messages]) => {
+            if (messages && messages.length > 0) {
+              form.setError(field as keyof typeof data, {
+                type: "server",
+                message: messages[0],
+              });
+            }
+          });
+        }
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (result.success) {
+      // Send email using EmailJS
+      const templateParams = {
+        from_name: `${data.firstName} ${data.lastName}`,
+        from_email: data.email,
+        phone: data.phone,
+        message: data.message,
+        to_email: 'bharathnaidu1402@gmail.com'
+      };
+
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+        templateParams,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
+      );
+
       toast({
-        title: "Message Sent!",
-        description: result.message,
+        title: "Message sent!",
+        description: "Thank you for your message! I'll get back to you soon.",
       });
       form.reset();
-    } else {
+      
+    } catch (error) {
+      console.error("Email sending error:", error);
       toast({
+        title: "Error",
+        description: "Failed to send message. Please try again or contact me directly.",
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: result.message,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
